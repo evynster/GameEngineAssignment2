@@ -26,11 +26,24 @@ public class CreateLevel : MonoBehaviour
     private GameObject floor = null;
     struct Room
     {
+        public Room(bool con = false)
+        {
+            pos = new Vector2();
+            size = new Vector2();
+            connected = con;
+        }
         public Vector2 size;
         public Vector2 pos;
+        public bool connected;
     }
 
+    struct Hall
+    {
+        public Vector2 start;
+        public Vector2 end;
+    }
     List<Room> rooms;
+    List<Hall> halls;
 
     [SerializeField]
     private GameObject levelstart = null;
@@ -78,6 +91,15 @@ public class CreateLevel : MonoBehaviour
         for (int i = 0; i < roomCount; i++){
             createRoom();
         }
+        Room temp = rooms[0];
+        temp.connected = true;
+
+        halls = new List<Hall>();
+
+        for(int i=0;i<rooms.Count;i++)
+            connectNearbyRooms(rooms[i]);
+
+        createConnectors();
 
 
 
@@ -101,6 +123,7 @@ public class CreateLevel : MonoBehaviour
     private void createRoom()
     {
         Room tempRoom = new Room();
+        tempRoom.connected = false;
         /*
          * this uses the dll
          */
@@ -145,9 +168,27 @@ public class CreateLevel : MonoBehaviour
         emergeCounter = 0;
         return room;
     }
-    private void createConnector()
+    private void createConnectors()
     {
-
+        Debug.Log("There are " + halls.Count + " halls");
+        for(int i = 0; i < halls.Count; i++)
+        {
+            Debug.Log("Hall start: " + halls[i].start + " Hall End: "+ halls[i].end );
+            if (halls[i].start.x == halls[i].end.x)
+            {
+                for(int n = (int)halls[i].start.y; n > (int)halls[i].end.y; n--)
+                {
+                    levelBaseData[(int)halls[i].start.x, n] = 1;
+                }
+            }
+            else
+            {
+                for (int n = (int)halls[i].start.x; n < (int)halls[i].end.x; n++)
+                {
+                    levelBaseData[(int)halls[i].start.y, (int)halls[i].start.x + n] = 1;
+                }
+            }
+        }
     }
     /*
      * check to see if the next room collides with any of the old rooms
@@ -166,5 +207,170 @@ public class CreateLevel : MonoBehaviour
             }
         }
         return false;
+    }
+
+    /*
+     * this function will find the nearest unconnected room so we can connect to it
+     * if no rooms are available we will return the original room
+     */
+    private void connectNearbyRooms(Room room)
+    {
+        //4 lists to sort through and find the closest on each side
+        List<Room> aboveRooms = new List<Room>();//rooms below
+        List<Room> belowRooms = new List<Room>();
+        List<Room> leftRooms = new List<Room>();
+        List<Room> rightRooms = new List<Room>();
+
+        //we go through all the rooms
+        for (int i = 0; i < rooms.Count; i++)
+        {
+            //those that collide on the x axis are our y rooms which we split up between the ones above and the ones below
+            if (room.pos.x + room.size.x >= rooms[i].pos.x && rooms[i].pos.x + rooms[i].size.x >= room.pos.x)
+            {
+                if (room.pos.y > rooms[i].pos.y)
+                    belowRooms.Add(rooms[i]);
+                else
+                    aboveRooms.Add(rooms[i]);
+            }
+                //same but swapping the axis top find the left and right rooms
+            if (room.pos.y + room.size.y >= rooms[i].pos.y && rooms[i].pos.y + rooms[i].size.y >= room.pos.y)
+            {
+                if (room.pos.x > rooms[i].pos.x)
+                    rightRooms.Add(rooms[i]);
+                else
+                    leftRooms.Add(rooms[i]);
+            } 
+        }
+
+        int aboveDistance = 10000;
+        Room closestAbove = new Room();
+
+        int belowDistance = 10000;
+        Room closestBelow = new Room();
+
+        int leftDistance = 10000;
+        Room closestLeft = new Room();
+
+        int rightDistance = 10000;
+        Room closestRight = new Room();
+
+
+        for (int i = 0; i < aboveRooms.Count; i++)
+        {
+            int tempDist = (int)(aboveRooms[i].pos.y - room.pos.y);
+            if (tempDist < aboveDistance)
+            {
+                aboveDistance = tempDist;
+                closestAbove = aboveRooms[i];
+            }
+        }
+
+        for (int i = 0; i < belowRooms.Count; i++)
+        {
+            int tempDist = (int)(room.pos.y - belowRooms[i].pos.y);
+            if (tempDist < belowDistance)
+            {
+                belowDistance = tempDist;
+                closestBelow = belowRooms[i];
+            }
+        }
+
+        for (int i = 0; i < leftRooms.Count; i++)
+        {
+            int tempDist = (int)(room.pos.x - leftRooms[i].pos.x);
+            if (tempDist < leftDistance)
+            {
+                leftDistance = tempDist;
+                closestLeft = leftRooms[i];
+            }
+        }
+
+        for (int i = 0; i < rightRooms.Count; i++)
+        {
+            int tempDist = (int)(rightRooms[i].pos.x - room.pos.x);
+            if (tempDist < rightDistance)
+            {
+                rightDistance = tempDist;
+                closestRight = rightRooms[i];
+            }
+        }
+        //if the room can exist and it's not already connected
+        if (aboveRooms.Count > 0)
+        {
+            if (!closestAbove.connected)
+            {
+                Hall tempHall = new Hall();
+
+                int minX = 0, maxX = 0;
+                minX = (int)(room.pos.x - closestAbove.pos.x);
+                if (minX < 0)
+                    minX *= -1;
+                minX += (int)room.pos.x;
+
+                maxX = (int)(room.size.x - closestAbove.size.x);
+                if (maxX < 0)
+                    maxX *= -1;
+                maxX += (int)closestAbove.pos.x;
+
+                int xLoc = Random.Range(minX, maxX);
+                tempHall.start = new Vector2(xLoc, room.pos.y + room.size.y);
+
+                tempHall.end = new Vector2(xLoc, closestAbove.pos.y);
+
+                closestAbove.connected = true;
+                halls.Add(tempHall);
+            }
+            else
+                Debug.Log("The closest Room above is already connected");
+        }
+        else
+            Debug.Log("No Rooms are above this");
+
+        /*
+        if (xRoomsNeg.Count == 0 && yRoomsNeg.Count == 0 && xRoomsPlus.Count == 0 && yRoomsPlus.Count == 0)
+            return room;
+        Room closest = new Room();
+        int distance = 10000;
+        for(int i = 0; i < xRoomsNeg.Count; i++)
+        {
+            if (xRoomsNeg[i].connected)
+                continue;
+            int tempDistance = 0;
+            if (xRoomsNeg[i].pos.x < room.pos.x)
+            {
+                tempDistance = (int)(room.pos.x - xRoomsNeg[i].pos.x + xRoomsNeg[i].size.x);
+            }
+            else 
+            {
+                tempDistance = (int)(-room.pos.x - room.size.x + xRoomsNeg[i].pos.x);
+            }
+            if (tempDistance < distance)
+            {
+                distance = tempDistance;
+                closest = xRoomsNeg[i];
+            }   
+        }
+        for (int i = 0; i < yRoomsNeg.Count; i++)
+        {
+            if (yRoomsNeg[i].connected)
+                continue;
+            int tempDistance = 0;
+            if (yRoomsNeg[i].pos.y < room.pos.y)
+            {
+                tempDistance = (int)(room.pos.y - xRoomsNeg[i].pos.y + xRoomsNeg[i].size.y);
+            }
+            else
+            {
+                tempDistance = (int)(-room.pos.y - room.size.y + xRoomsNeg[i].pos.y);
+            }
+            if (tempDistance < distance)
+            {
+                distance = tempDistance;
+                closest = yRoomsNeg[i];
+            }
+        }
+       
+        return closest;
+         */
     }
 }
