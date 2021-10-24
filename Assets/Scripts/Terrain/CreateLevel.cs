@@ -24,30 +24,14 @@ public class CreateLevel : MonoBehaviour
 
     [SerializeField]
     private GameObject floor = null;
-    struct Room
-    {
-        public Room(bool con = false)
-        {
-            pos = new Vector2();
-            size = new Vector2();
-            connected = con;
-        }
-        public Vector2 size;
-        public Vector2 pos;
-        public bool connected;
-    }
 
-    struct Hall
-    {
-        public Vector2 start;
-        public Vector2 end;
-    }
-    List<Room> rooms;
-    List<Hall> halls;
+   
+    static List<Structures.Room> rooms;
+    static List<Structures.Hall> halls;
 
-    List<Room> unconnectedRooms;
-    List<Room> connectedRooms;
-    List<Room> completeRooms;
+    List<Structures.Room> unconnectedRooms;
+    List<Structures.Room> connectedRooms;
+    List<Structures.Room> completeRooms;
 
     [SerializeField]
     private GameObject levelstart = null;
@@ -58,6 +42,7 @@ public class CreateLevel : MonoBehaviour
     private void Awake()
     {
         generateAmount = SingletonGeneration.Instance;
+        originalMaxHallLength = maxHallLength;
     }
 
     // Update is called once per frame
@@ -65,20 +50,25 @@ public class CreateLevel : MonoBehaviour
     {
         
     }
-
-    private int minRooms = 30;
+    [SerializeField]
+    private int minRooms = 50;
+    [SerializeField]
     private int maxRooms = 100;
-
+    [SerializeField]
     private int minRoomSize = 5;
+    [SerializeField]
     private int maxRoomSize = 12;//these variables let us change generation functionality easily
 
-    private int maxHallLength = 5;
+    [SerializeField]
+    private int maxHallLength = 8;
+    private int originalMaxHallLength;
 
     /*
      * working on a linear generation
      */
     public void generateLevel()
     {
+        LevelCommandInvoker.clearAll();
         generateAction?.Invoke();
         generateAmount.generations++;
         for(int i = levelstart.transform.childCount; i > 0; i--)
@@ -92,18 +82,18 @@ public class CreateLevel : MonoBehaviour
 
         //THIS DOES NOT WORK
         //Debug.Log(generateRandomDungeon(levelBaseData.GetLength(0), levelBaseData.GetLength(1),minRooms,maxRooms,minRoomSize,maxRoomSize));
-        rooms = new List<Room>();
-        unconnectedRooms = new List<Room>();
-        connectedRooms = new List<Room>();
-        completeRooms = new List<Room>();
+        rooms = new List<Structures.Room>();
+        unconnectedRooms = new List<Structures.Room>();
+        connectedRooms = new List<Structures.Room>();
+        completeRooms = new List<Structures.Room>();
 
         for (int i = 0; i < roomCount; i++){
             createRoom();
         }
-        Room temp = rooms[0];
+        Structures.Room temp = rooms[0];
         temp.connected = true;
 
-        halls = new List<Hall>();
+        halls = new List<Structures.Hall>();
 
         for (int i = 0; i < rooms.Count; i++)
             unconnectedRooms.Add(rooms[i]);
@@ -111,17 +101,29 @@ public class CreateLevel : MonoBehaviour
         connectedRooms.Add(unconnectedRooms[0]);
         unconnectedRooms.RemoveAt(0);
 
-        int stuckChecker = 0;
+
+        int stuckChecker = 0;//TODO stuckchecker doesn't work
         int previousCount = 0;
         while (unconnectedRooms.Count > 0)
         {
-            if (connectedRooms.Count == previousCount)
-                stuckChecker++;
-            previousCount = connectedRooms.Count;
-           
             for (int i = 0; i < connectedRooms.Count; i++)
                 connectNearbyRooms(connectedRooms[i]);
-            if (stuckChecker > 50)
+
+            if (connectedRooms.Count == previousCount)
+            {
+                
+                maxHallLength++;
+                stuckChecker++;
+            }
+            else
+            {
+                previousCount = connectedRooms.Count;
+                stuckChecker = 0;
+                maxHallLength = originalMaxHallLength;
+            }
+            
+
+            if (stuckChecker > 5)
             {
                 unconnectedRooms.Clear();
                 Debug.LogWarning("There is an unconnected room!");
@@ -129,8 +131,18 @@ public class CreateLevel : MonoBehaviour
         }
         
 
-        createConnectors();
+        
 
+
+        for (int i = 0; i < rooms.Count; i++)
+        {
+            LevelCommandInvoker.AddCommand(new PlaceRoomCommand(rooms[i], floor, levelstart));
+        }
+        for (int i = 0; i < halls.Count; i++)
+        {
+            LevelCommandInvoker.AddCommand(new PlaceHallCommand(halls[i], floor, levelstart));
+        }
+            createConnectors();
 
 
         for (int i = 0; i < levelBaseData.GetLength(0); i++)
@@ -150,9 +162,14 @@ public class CreateLevel : MonoBehaviour
 
 
     }
+    /*
+     * room creation
+     * we use a dll to get a size of the room and then use the placeroom function to get a position for it
+     * if the room wasn't able to get a position we don't add it to the list of rooms
+     */
     private void createRoom()
     {
-        Room tempRoom = new Room();
+        Structures.Room tempRoom = new Structures.Room();
         tempRoom.connected = false;
         /*
          * this uses the dll
@@ -162,18 +179,24 @@ public class CreateLevel : MonoBehaviour
 
         tempRoom = PlaceRoom(tempRoom);
 
-        for(int i = 0; i < tempRoom.size.x; i++)
-        {
-            for (int n = 0; n < tempRoom.size.y; n++)
-            {
-                levelBaseData[(int)tempRoom.pos.x + i, (int)tempRoom.pos.y + n] = 1;
-            }
-        }
+        //for(int i = 0; i < tempRoom.size.x; i++)
+        //{
+        //    for (int n = 0; n < tempRoom.size.y; n++)
+        //    {
+        //        levelBaseData[(int)tempRoom.pos.x + i, (int)tempRoom.pos.y + n] = 1;
+        //    }
+        //}
         if(tempRoom.pos.x!=-1)
             rooms.Add(tempRoom);
     }
+    /*
+     * the emergeCounter and placeRoom function are connected directly
+     * we attempt to place a room in the grid of rooms using a dll generated coordinates
+     * if the room can't place we retry using the function recursivively 
+     * after 50 attempts we give up
+     */
     private int emergeCounter = 0;
-    private Room PlaceRoom(Room room)
+    private Structures.Room PlaceRoom(Structures.Room room)
     {
         if (rooms.Count == 0)
         {
@@ -201,8 +224,11 @@ public class CreateLevel : MonoBehaviour
     }
     private void createConnectors()
     {
-        for(int i = 0; i < halls.Count; i++)
+        /*
+        for (int i = 0; i < halls.Count; i++)
         {
+
+            
             if (halls[i].start.x == halls[i].end.x)
             {
                 if(halls[i].start.y<halls[i].end.y)
@@ -229,12 +255,12 @@ public class CreateLevel : MonoBehaviour
                         levelBaseData[ n, (int)halls[i].start.y] = 1;
                     }
             }
-        }
+        }*/
     }
     /*
      * check to see if the next room collides with any of the old rooms
      */
-    private bool checkCollision(Room room)
+    private bool checkCollision(Structures.Room room)
     {
         for(int i = 0; i < rooms.Count; i++)
         {
@@ -252,24 +278,33 @@ public class CreateLevel : MonoBehaviour
 
     /*
      * this function will find the nearest unconnected room so we can connect to it
-     * if no rooms are available we will return the original room
+     * if no rooms are available we will add this room to the list of completed rooms
+     * if the hallwaymax is too short to reach we will slowly increase the max until a room connects before reseting it
      */
-    private void connectNearbyRooms(Room room)
+    private void connectNearbyRooms(Structures.Room room)
     {
-        bool above = false;
+        bool above = false;//above tells us a room is available above us
+        bool aboveDist = false;//aboveDist tells us if the hallway max will let us reach it
+
         bool below = false;
+        bool belowDist = false;
+
         bool left = false;
+        bool leftDist = false;
+
         bool right = false;
+        bool rightDist = false;
+
         //4 lists to sort through and find the closest on each side
-        List<Room> aboveRooms = new List<Room>();//rooms below
-        List<Room> belowRooms = new List<Room>();
-        List<Room> leftRooms = new List<Room>();
-        List<Room> rightRooms = new List<Room>();
+        List<Structures.Room> aboveRooms = new List<Structures.Room>();
+        List<Structures.Room> belowRooms = new List<Structures.Room>();
+        List<Structures.Room> leftRooms = new List<Structures.Room>();
+        List<Structures.Room> rightRooms = new List<Structures.Room>();
 
         //we go through all the rooms
         for (int i = 0; i < rooms.Count; i++)
         {
-            if (rooms[i].pos == room.pos)
+            if (rooms[i].pos == room.pos)//if the room is our room we want to skip it
                 continue;
             //those that collide on the x axis are our y rooms which we split up between the ones above and the ones below
             if (room.pos.x + room.size.x-0.1 >= rooms[i].pos.x && rooms[i].pos.x + rooms[i].size.x >= room.pos.x+0.1)
@@ -279,8 +314,8 @@ public class CreateLevel : MonoBehaviour
                 else
                     aboveRooms.Add(rooms[i]);
             }
-                //same but swapping the axis top find the left and right rooms
-            if (room.pos.y + room.size.y -0.1 >= rooms[i].pos.y && rooms[i].pos.y + rooms[i].size.y >= room.pos.y +0.1)
+            //same but swapping the axis top find the left and right rooms
+            else if (room.pos.y + room.size.y -0.1 >= rooms[i].pos.y && rooms[i].pos.y + rooms[i].size.y >= room.pos.y +0.1)
             {
                 if (room.pos.x > rooms[i].pos.x)
                     rightRooms.Add(rooms[i]);
@@ -288,20 +323,20 @@ public class CreateLevel : MonoBehaviour
                     leftRooms.Add(rooms[i]);
             } 
         }
-
+        //these rooms will be the closest
         int aboveDistance = 10000;
-        Room closestAbove = new Room();
+        Structures.Room closestAbove = new Structures.Room();
 
         int belowDistance = 10000;
-        Room closestBelow = new Room();
+        Structures.Room closestBelow = new Structures.Room();
 
         int leftDistance = 10000;
-        Room closestLeft = new Room();
+        Structures.Room closestLeft = new Structures.Room();
 
         int rightDistance = 10000;
-        Room closestRight = new Room();
+        Structures.Room closestRight = new Structures.Room();
 
-
+        //go through all rooms in a direction and find the closest
         for (int i = 0; i < aboveRooms.Count; i++)
         {
             int tempDist = (int)(aboveRooms[i].pos.y - room.pos.y);
@@ -345,18 +380,20 @@ public class CreateLevel : MonoBehaviour
         //if the room can exist and it's not already connected
         if (aboveRooms.Count > 0)
         {
-            int hallLength = 00;// (int)(closestAbove.pos.y - (room.pos.y + room.size.y));
+            int hallLength = (int)(closestAbove.pos.y - (room.pos.y + room.size.y));//check how far it is
             for (int i = 0; i < unconnectedRooms.Count; i++)
             {
-                if (unconnectedRooms[i].pos == closestAbove.pos && hallLength <= maxHallLength)
+                if (unconnectedRooms[i].pos == closestAbove.pos )
                 {
                     above = true;
+                    if (hallLength <= maxHallLength)
+                        aboveDist = true;
                 }
             }
-            if (above)
+            if (above&&aboveDist)
             {
 
-                Hall tempHall = new Hall();
+                Structures.Hall tempHall = new Structures.Hall();
 
                 int minX, maxX;
 
@@ -391,17 +428,19 @@ public class CreateLevel : MonoBehaviour
         
         if (belowRooms.Count > 0)
         {
-            int hallLength = 0;// (int)((closestBelow.pos.y + closestBelow.size.y) - room.pos.y);
+            int hallLength = (int)(room.pos.y-(closestBelow.pos.y + closestBelow.size.y));
             for (int i = 0; i < unconnectedRooms.Count; i++)
             {
-                if (unconnectedRooms[i].pos == closestBelow.pos && hallLength <= maxHallLength)
+                if (unconnectedRooms[i].pos == closestBelow.pos )
                 {
                     below = true;
+                    if (hallLength <= maxHallLength)
+                        belowDist = true;
                 }
             }
-            if (below)
+            if (below&&belowDist)
             {
-                Hall tempHall = new Hall();
+                Structures.Hall tempHall = new Structures.Hall();
 
                 int minX, maxX;
 
@@ -436,17 +475,19 @@ public class CreateLevel : MonoBehaviour
         
         if (leftRooms.Count > 0)
         {
-            int hallLength = 0;// (int)(room.pos.x -( closestLeft.pos.x + closestLeft.size.x));
+            int hallLength = (int)(closestLeft.pos.x - (room.pos.x + room.size.x));
             for (int i = 0; i < unconnectedRooms.Count; i++)
             {
-                if (unconnectedRooms[i].pos == closestLeft.pos && hallLength <= maxHallLength)
+                if (unconnectedRooms[i].pos == closestLeft.pos)
                 {
                     left = true;
+                    if (hallLength <= maxHallLength)
+                        leftDist = true;
                 }
             }
-            if (left)
+            if (left&&leftDist)
             {
-                Hall tempHall = new Hall();
+                Structures.Hall tempHall = new Structures.Hall();
 
                 int minY, maxY;
 
@@ -481,17 +522,19 @@ public class CreateLevel : MonoBehaviour
         
         if (rightRooms.Count > 0)
         {
-            int hallLength = 0;// (int)(closestRight.pos.x - (room.pos.x + room.size.x) );
+            int hallLength =(int)(room.pos.x - (closestRight.pos.x + closestRight.size.x));
             for (int i = 0; i < unconnectedRooms.Count; i++)
             {
-                if (unconnectedRooms[i].pos == closestRight.pos && hallLength <= maxHallLength)
+                if (unconnectedRooms[i].pos == closestRight.pos)
                 {
                     right = true;
+                    if (hallLength <= maxHallLength)
+                        rightDist = true;
                 }
             }
-            if (right)
+            if (right&&rightDist)
             {
-                Hall tempHall = new Hall();
+                Structures.Hall tempHall = new Structures.Hall();
 
                 int minY, maxY;
 
@@ -536,4 +579,5 @@ public class CreateLevel : MonoBehaviour
             }
         }
     }
+    
 }
