@@ -15,9 +15,9 @@ public class PlaceHallCommand : LevelCommand
     }
     public void Execute()
     {
-        if (hall.start.x == hall.end.x)
+        if (hall.start.x == hall.end.x)//up and down
         {
-            if (hall.start.y < hall.end.y)
+            if (hall.start.y < hall.end.y)//hall going downwards
                 for (int n = (int)hall.start.y; n < (int)hall.end.y; n++)
                 {
                     GameObject newFloor = GameObject.Instantiate(floor);
@@ -28,8 +28,8 @@ public class PlaceHallCommand : LevelCommand
                     newFloor.transform.SetParent(levelStart.transform);
                     hall.hallComponents.Add(newFloor);
                 }
-            else
-                for (int n = (int)hall.start.y; n >= (int)hall.end.y; n--)
+            else//hall going upwards
+                for (int n = (int)hall.start.y-1; n >= (int)hall.end.y; n--)
                 {
                     GameObject newFloor = GameObject.Instantiate(floor);
                     newFloor.transform.parent = levelStart.transform;
@@ -42,8 +42,8 @@ public class PlaceHallCommand : LevelCommand
         }
         else
         {
-            if (hall.start.x < hall.end.x)
-                for (int n = (int)hall.start.x; n < (int)hall.end.x; n++)
+            if (hall.start.x < hall.end.x)//left and right
+                for (int n = (int)hall.start.x; n < (int)hall.end.x; n++)//hall going right
                 {
                     GameObject newFloor = GameObject.Instantiate(floor);
                     newFloor.transform.parent = levelStart.transform;
@@ -53,8 +53,8 @@ public class PlaceHallCommand : LevelCommand
                     newFloor.transform.SetParent(levelStart.transform);
                     hall.hallComponents.Add(newFloor);
                 }
-            else
-                for (int n = (int)hall.start.x; n >= (int)hall.end.x; n--)
+            else//hall going left
+                for (int n = (int)hall.start.x-1; n >= (int)hall.end.x; n--)
                 {
                     GameObject newFloor = GameObject.Instantiate(floor);
                     newFloor.transform.parent = levelStart.transform;

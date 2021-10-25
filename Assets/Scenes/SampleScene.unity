@@ -2252,6 +2252,7 @@ GameObject:
   - component: {fileID: 1118095918}
   - component: {fileID: 1118095917}
   - component: {fileID: 1118095916}
+  - component: {fileID: 1118095920}
   m_Layer: 8
   m_Name: Terrain
   m_TagString: Untagged
@@ -2341,6 +2342,25 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1118095920
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1118095915}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7465d1b6360ceae4697b63db228b8d90, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  floor: {fileID: 5906855915206931813, guid: 156c8d454d805a048a30467d1737bfbe, type: 3}
+  red: {fileID: 2100000, guid: bc4e88022c11c7a43a666a81d09d8d6c, type: 2}
+  orange: {fileID: 2100000, guid: e11b5f9031e4f634486ee1e80f2ae95f, type: 2}
+  yellow: {fileID: 2100000, guid: 0ec83091571d6874f89bed3c92284717, type: 2}
+  green: {fileID: 2100000, guid: 5c349a13f18853a4a9a64321285b37dc, type: 2}
+  blue: {fileID: 2100000, guid: cc03383a87542da43923e611e5418dbc, type: 2}
+  purple: {fileID: 2100000, guid: b09d9619e1d9b2c4491f2bbd5e95d3e0, type: 2}
 --- !u!1 &1157595778
 GameObject:
   m_ObjectHideFlags: 0
