@@ -46,8 +46,7 @@ public class CreateLevel : MonoBehaviour
     [SerializeField]
     private GameObject levelstart = null;
 
-
-    private int[,] levelBaseData;
+    public int maxSizeX = 100, maxSizeY = 100;
 
     private void Awake()
     {
@@ -94,16 +93,13 @@ public class CreateLevel : MonoBehaviour
         generateAmount.generations++;
         for(int i = levelstart.transform.childCount; i > 0; i--)
         {
-            GameObject.Destroy(levelstart.transform.GetChild(i-1).gameObject);
+            levelstart.transform.GetChild(i - 1).gameObject.SetActive(false);
         }
 
-        levelBaseData = new int[100, 100];
 
         int roomCount = Random.Range(minRooms,maxRooms);//get a count for how many rooms to make
 
-        //THIS DOES NOT WORK
-        //Debug.Log(generateRandomDungeon(levelBaseData.GetLength(0), levelBaseData.GetLength(1),minRooms,maxRooms,minRoomSize,maxRoomSize));
-        
+
 
         for (int i = 0; i < roomCount; i++){
             createRoom();
@@ -160,24 +156,6 @@ public class CreateLevel : MonoBehaviour
         {
             LevelCommandInvoker.AddCommand(new PlaceHallCommand(halls[i], floor, levelstart));
         }
-
-
-        for (int i = 0; i < levelBaseData.GetLength(0); i++)
-        {
-            for (int n = 0; n < levelBaseData.GetLength(1); n++)
-            {
-                if (levelBaseData[i, n] == 1)
-                {
-                    GameObject newFloor =  GameObject.Instantiate(floor);
-                    newFloor.transform.parent = levelstart.transform;
-                    newFloor.transform.position = new Vector3(i*4,0,n*4) + levelstart.transform.position;
-                    newFloor.transform.localScale = new Vector3(200, 200, 200);
-                    newFloor.layer = LayerMask.NameToLayer("Ground");
-                }
-            }
-        }
-
-
     }
     /*
      * room creation
@@ -215,7 +193,7 @@ public class CreateLevel : MonoBehaviour
         else
         {
             
-            room.pos = generateRoomPos(0, levelBaseData.GetLength(0) - (int)room.size.x, levelBaseData.GetLength(0) - (int)room.size.y);
+            room.pos = generateRoomPos(0, maxSizeX - (int)room.size.x, maxSizeY - (int)room.size.y);
         }
         if(emergeCounter>=50)
         {
@@ -596,7 +574,7 @@ public class CreateLevel : MonoBehaviour
         Marshal.Copy(start, result, 0, arrayLength);
         for (int i = levelstart.transform.childCount; i > 0; i--)
         {
-            GameObject.Destroy(levelstart.transform.GetChild(i - 1).gameObject);
+            levelstart.transform.GetChild(i - 1).gameObject.SetActive(false); ;
         }
 
         if(rooms.Count>0)

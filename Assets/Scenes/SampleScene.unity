@@ -210,6 +210,7 @@ GameObject:
   - component: {fileID: 15895923}
   - component: {fileID: 15895922}
   - component: {fileID: 15895924}
+  - component: {fileID: 15895925}
   m_Layer: 0
   m_Name: Level Creator
   m_TagString: Level
@@ -232,6 +233,8 @@ MonoBehaviour:
   generateAmount: {fileID: 0}
   floor: {fileID: 5906855915206931813, guid: 156c8d454d805a048a30467d1737bfbe, type: 3}
   levelstart: {fileID: 1991673099}
+  maxSizeX: 100
+  maxSizeY: 100
   minRooms: 50
   maxRooms: 100
   minRoomSize: 5
@@ -264,6 +267,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f09c0416425f7644389bc97a5d5cb148, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &15895925
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 15895921}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7465d1b6360ceae4697b63db228b8d90, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  floor: {fileID: 5906855915206931813, guid: 156c8d454d805a048a30467d1737bfbe, type: 3}
+  lvlStart: {fileID: 1991673099}
+  white: {fileID: 2100000, guid: 7ef73053f0353274e97c350dfd203790, type: 2}
+  red: {fileID: 2100000, guid: bc4e88022c11c7a43a666a81d09d8d6c, type: 2}
+  orange: {fileID: 2100000, guid: e11b5f9031e4f634486ee1e80f2ae95f, type: 2}
+  yellow: {fileID: 2100000, guid: 0ec83091571d6874f89bed3c92284717, type: 2}
+  green: {fileID: 2100000, guid: 5c349a13f18853a4a9a64321285b37dc, type: 2}
+  blue: {fileID: 2100000, guid: cc03383a87542da43923e611e5418dbc, type: 2}
+  purple: {fileID: 2100000, guid: b09d9619e1d9b2c4491f2bbd5e95d3e0, type: 2}
 --- !u!1 &27689756
 GameObject:
   m_ObjectHideFlags: 0
@@ -2252,7 +2276,6 @@ GameObject:
   - component: {fileID: 1118095918}
   - component: {fileID: 1118095917}
   - component: {fileID: 1118095916}
-  - component: {fileID: 1118095920}
   m_Layer: 8
   m_Name: Terrain
   m_TagString: Untagged
@@ -2342,25 +2365,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1118095920
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1118095915}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7465d1b6360ceae4697b63db228b8d90, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  floor: {fileID: 5906855915206931813, guid: 156c8d454d805a048a30467d1737bfbe, type: 3}
-  red: {fileID: 2100000, guid: bc4e88022c11c7a43a666a81d09d8d6c, type: 2}
-  orange: {fileID: 2100000, guid: e11b5f9031e4f634486ee1e80f2ae95f, type: 2}
-  yellow: {fileID: 2100000, guid: 0ec83091571d6874f89bed3c92284717, type: 2}
-  green: {fileID: 2100000, guid: 5c349a13f18853a4a9a64321285b37dc, type: 2}
-  blue: {fileID: 2100000, guid: cc03383a87542da43923e611e5418dbc, type: 2}
-  purple: {fileID: 2100000, guid: b09d9619e1d9b2c4491f2bbd5e95d3e0, type: 2}
 --- !u!1 &1157595778
 GameObject:
   m_ObjectHideFlags: 0
