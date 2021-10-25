@@ -1,0 +1,11 @@
+In-class Labs and Lectures
+- I wouldn't be taking this course if I knew it all from the start
+
+https://docs.unity3d.com/ScriptReference/Input.html
+-Debugging new Input system
+
+https://stackoverflow.com/questions/17634480/return-c-array-to-c-sharp
+-used for learning how to bring data from the dll back to unity
+
+https://www.cplusplus.com/doc/tutorial/files/
+-a refresher on using c++ input output stream
