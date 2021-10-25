@@ -13,6 +13,16 @@ public class CreateLevel : MonoBehaviour
 
     [DllImport("EnginesQuizDLL")]
     private static extern Vector2Int generateRoomPos(int minPos, int maxPosX, int maxPosY);
+
+    [DllImport("SaveLoadDLL")]
+    private static extern void SaveData(int dataSize, int[] data);
+
+    [DllImport("SaveLoadDLL")]
+    private static extern System.IntPtr ReadData();
+
+    [DllImport("SaveLoadDLL")]
+    private static extern void DeleteArray(System.IntPtr array);
+
     //THIS DOES NOT WORK
     //[DllImport("EnginesQuizDLL")]
     //private static extern string generateRandomDungeon(int sizeX, int sizeY, int minRoom, int maxRoom, int minSize, int maxSize);
@@ -43,6 +53,11 @@ public class CreateLevel : MonoBehaviour
     {
         generateAmount = SingletonGeneration.Instance;
         originalMaxHallLength = maxHallLength;
+        rooms = new List<Structures.Room>();
+        unconnectedRooms = new List<Structures.Room>();
+        connectedRooms = new List<Structures.Room>();
+        completeRooms = new List<Structures.Room>();
+        halls = new List<Structures.Hall>();
     }
 
     // Update is called once per frame
@@ -68,6 +83,12 @@ public class CreateLevel : MonoBehaviour
      */
     public void generateLevel()
     {
+        rooms = new List<Structures.Room>();
+        unconnectedRooms = new List<Structures.Room>();
+        connectedRooms = new List<Structures.Room>();
+        completeRooms = new List<Structures.Room>();
+        halls = new List<Structures.Hall>();
+
         LevelCommandInvoker.clearAll();
         generateAction?.Invoke();
         generateAmount.generations++;
@@ -82,10 +103,7 @@ public class CreateLevel : MonoBehaviour
 
         //THIS DOES NOT WORK
         //Debug.Log(generateRandomDungeon(levelBaseData.GetLength(0), levelBaseData.GetLength(1),minRooms,maxRooms,minRoomSize,maxRoomSize));
-        rooms = new List<Structures.Room>();
-        unconnectedRooms = new List<Structures.Room>();
-        connectedRooms = new List<Structures.Room>();
-        completeRooms = new List<Structures.Room>();
+        
 
         for (int i = 0; i < roomCount; i++){
             createRoom();
@@ -142,7 +160,6 @@ public class CreateLevel : MonoBehaviour
         {
             LevelCommandInvoker.AddCommand(new PlaceHallCommand(halls[i], floor, levelstart));
         }
-            createConnectors();
 
 
         for (int i = 0; i < levelBaseData.GetLength(0); i++)
@@ -179,13 +196,6 @@ public class CreateLevel : MonoBehaviour
 
         tempRoom = PlaceRoom(tempRoom);
 
-        //for(int i = 0; i < tempRoom.size.x; i++)
-        //{
-        //    for (int n = 0; n < tempRoom.size.y; n++)
-        //    {
-        //        levelBaseData[(int)tempRoom.pos.x + i, (int)tempRoom.pos.y + n] = 1;
-        //    }
-        //}
         if(tempRoom.pos.x!=-1)
             rooms.Add(tempRoom);
     }
@@ -221,41 +231,6 @@ public class CreateLevel : MonoBehaviour
         }
         emergeCounter = 0;
         return room;
-    }
-    private void createConnectors()
-    {
-        /*
-        for (int i = 0; i < halls.Count; i++)
-        {
-
-            
-            if (halls[i].start.x == halls[i].end.x)
-            {
-                if(halls[i].start.y<halls[i].end.y)
-                    for(int n = (int)halls[i].start.y; n < (int)halls[i].end.y; n++)
-                    {
-                        levelBaseData[(int)halls[i].start.x, n] = 1;
-                    }
-                else
-                    for (int n = (int)halls[i].start.y; n >= (int)halls[i].end.y; n--)
-                    {
-                        levelBaseData[(int)halls[i].start.x, n] = 1;
-                    }
-            }
-            else
-            {
-                if (halls[i].start.x < halls[i].end.x)
-                    for (int n = (int)halls[i].start.x; n < (int)halls[i].end.x; n++)
-                    {
-                        levelBaseData[n,(int)halls[i].start.y] = 1;
-                    }
-                else
-                    for (int n = (int)halls[i].start.x; n >= (int)halls[i].end.x; n--)
-                    {
-                        levelBaseData[ n, (int)halls[i].start.y] = 1;
-                    }
-            }
-        }*/
     }
     /*
      * check to see if the next room collides with any of the old rooms
@@ -580,4 +555,88 @@ public class CreateLevel : MonoBehaviour
         }
     }
     
+
+    public void saveData()
+    {
+        List<int> test = new List<int>();
+        Debug.Log(rooms.Count);
+        for(int i = 0; i < rooms.Count; i++)
+        {
+            test.Add((int)rooms[i].pos.x);
+            test.Add((int)rooms[i].pos.y);
+            test.Add((int)rooms[i].size.x);
+            test.Add((int)rooms[i].size.y);
+            test.Add(-2);
+        }
+        for(int i = 0; i < halls.Count; i++)
+        {
+            test.Add((int)halls[i].start.x);
+            test.Add((int)halls[i].start.y);
+            test.Add((int)halls[i].end.x);
+            test.Add((int)halls[i].end.y);
+            test.Add(-3);
+        }
+
+
+
+
+        SaveData(test.Count,test.ToArray());
+        
+    }
+
+    public void readData()
+    {
+        LevelCommandInvoker.clearAll();
+        System.IntPtr test = ReadData();
+
+        int arrayLength = Marshal.ReadInt32(test);
+
+        System.IntPtr start = System.IntPtr.Add(test, 4);
+        int[] result = new int[arrayLength];
+        Marshal.Copy(start, result, 0, arrayLength);
+        for (int i = levelstart.transform.childCount; i > 0; i--)
+        {
+            GameObject.Destroy(levelstart.transform.GetChild(i - 1).gameObject);
+        }
+
+        if(rooms.Count>0)
+            rooms.Clear();
+        if(halls.Count>0)
+            halls.Clear();
+
+        for (int i = 1; i < result.Length; i+=5)
+        {
+            Vector2 temp1 = new Vector2(result[i], result[i + 1]);
+            Vector2 temp2 = new Vector2(result[i+2], result[i + 3]);
+            if (result[i + 4] == -2)
+            {
+                Structures.Room tempRoom = new Structures.Room();
+                tempRoom.connected = true;
+                tempRoom.pos = temp1;
+                tempRoom.size = temp2;
+                rooms.Add(tempRoom);
+            }
+            else
+            {
+                Structures.Hall tempHall = new Structures.Hall();
+                tempHall.start = temp1;
+                tempHall.end = temp2;
+                halls.Add(tempHall);
+            }
+        }
+
+        for (int i = 0; i < rooms.Count; i++)
+        {
+            LevelCommandInvoker.AddCommand(new PlaceRoomCommand(rooms[i], floor, levelstart));
+        }
+        for (int i = 0; i < halls.Count; i++)
+        {
+            LevelCommandInvoker.AddCommand(new PlaceHallCommand(halls[i], floor, levelstart));
+        }
+
+
+        //there is unmanaged memory in the dll
+        //DeleteArray(test);
+
+    }
 }
